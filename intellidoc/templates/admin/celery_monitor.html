@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}System Monitor - RAG AI Assistant{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h1 class="text-3xl font-bold mb-8">System Monitor</h1>
+        
+        <!-- Celery Status -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <h3 class="text-lg font-semibold mb-4">Worker Status</h3>
+                <div id="worker-status" hx-get="/admin/celery/status/" hx-trigger="every 5s">
+                    Loading...
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <h3 class="text-lg font-semibold mb-4">Queue Length</h3>
+                <div id="queue-status" hx-get="/admin/celery/queue/" hx-trigger="every 5s">
+                    Loading...
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                <h3 class="text-lg font-semibold mb-4">Processing Tasks</h3>
+                <div id="task-status" hx-get="/admin/celery/tasks/" hx-trigger="every 5s">
+                    Loading...
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Tasks -->
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <h3 class="text-lg font-semibold mb-4">Recent Tasks</h3>
+            <div id="recent-tasks" hx-get="/admin/celery/recent/" hx-trigger="every 10s">
+                Loading...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

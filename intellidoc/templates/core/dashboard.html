@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - RAG AI Assistant{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900">
+    <!-- Hero Section -->
+    <div class="gradient-bg py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-5xl font-bold mb-6">AI-Powered Document Intelligence</h1>
+            <p class="text-xl text-gray-200 mb-8 max-w-3xl mx-auto">
+                Upload your documents and chat with them using advanced RAG technology. 
+                Get instant insights, summaries, and answers from your knowledge base.
+            </p>
+            <div class="flex justify-center space-x-4">
+                <a href="{% url 'core:chat' %}" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                    Start Chatting
+                </a>
+                <a href="{% url 'core:document_upload' %}" class="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-gray-900 transition-colors">
+                    Upload Documents
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-blue-400 mb-2">{{ stats.total_documents }}</div>
+                    <div class="text-gray-300">Documents</div>
+                </div>
+                <div class="glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-green-400 mb-2">{{ stats.total_chats }}</div>
+                    <div class="text-gray-300">Conversations</div>
+                </div>
+                <div class="glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-purple-400 mb-2">{{ user.daily_query_count }}</div>
+                    <div class="text-gray-300">Queries Today</div>
+                </div>
+                <div class="glass-effect rounded-xl p-6 text-center">
+                    <div class="text-3xl font-bold text-yellow-400 mb-2">{{ stats.total_chunks }}</div>
+                    <div class="text-gray-300">Knowledge Chunks</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Documents -->
+    <div class="py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold mb-8">Recent Documents</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for doc in recent_documents %}
+                <div class="bg-gray-800 rounded-xl p-6 hover:bg-gray-750 transition-colors border border-gray-700">
+                    <div class="flex items-start justify-between mb-4">
+                        <h3 class="text-lg font-semibold truncate">{{ doc.title }}</h3>
+                        <div class="flex items-center space-x-2">
+                            {% if doc.status == 'processed' %}
+                                <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                            {% elif doc.status == 'processing' %}
+                                <span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                            {% else %}
+                                <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-4">
+                        {{ doc.file_type|upper }} • {{ doc.file_size|filesizeformat }}
+                    </p>
+                    <p class="text-gray-300 text-sm mb-4">
+                        {{ doc.description|truncatechars:100 }}
+                    </p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500">{{ doc.created_at|timesince }} ago</span>
+                        <a href="{% url 'core:chat' %}?document={{ doc.id }}" class="text-blue-400 hover:text-blue-300 text-sm">
+                            Chat with this doc →
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-span-full text-center py-12">
+                    <i class="fas fa-file-upload text-4xl text-gray-600 mb-4"></i>
+                    <p class="text-gray-400 mb-4">No documents uploaded yet</p>
+                    <a href="{% url 'core:document_upload' %}" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg">
+                        Upload Your First Document
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="py-16 bg-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-center mb-12">Powerful Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-brain text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">Smart RAG Technology</h3>
+                    <p class="text-gray-400">Advanced retrieval-augmented generation for accurate, contextual responses from your documents.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-bolt text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">Real-time Processing</h3>
+                    <p class="text-gray-400">Live document processing with WebSocket updates and instant chat responses.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shield-alt text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-4">Secure & Private</h3>
+                    <p class="text-gray-400">Your documents are processed securely with enterprise-grade privacy protection.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
