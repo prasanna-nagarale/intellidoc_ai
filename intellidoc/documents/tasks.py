@@ -1,3 +1,4 @@
+# documents/tasks.py
 import logging
 from celery import shared_task
 from django.utils import timezone
@@ -11,7 +12,7 @@ from accounts.models import User
 logger = logging.getLogger('intellidoc.tasks')
 channel_layer = get_channel_layer()
 
-@shared_task(bind=True)
+@shared_task(bind=True, max_retries=3)
 def process_document_task(self, document_id: str, user_id: int):
     """Background task to process uploaded document"""
     
@@ -20,19 +21,29 @@ def process_document_task(self, document_id: str, user_id: int):
         document = Document.objects.get(id=document_id)
         user = User.objects.get(id=user_id)
         
-        # Send real-time update
-        async_to_sync(channel_layer.group_send)(
-            f"user_{user_id}",
-            {
-                "type": "document_processing_update",
-                "message": {
-                    "document_id": document_id,
-                    "status": "processing",
-                    "progress": 5,
-                    "message": "Starting document processing..."
+        logger.info(f"Starting to process document {document_id}")
+        
+        # Update document status to processing
+        document.status = 'processing'
+        document.processing_progress = 10
+        document.save()
+        
+        # Send real-time update if channels are configured
+        try:
+            async_to_sync(channel_layer.group_send)(
+                f"user_{user_id}",
+                {
+                    "type": "document_processing_update",
+                    "message": {
+                        "document_id": document_id,
+                        "status": "processing",
+                        "progress": 10,
+                        "message": "Starting document processing..."
+                    }
                 }
-            }
-        )
+            )
+        except Exception as e:
+            logger.warning(f"Could not send real-time update: {e}")
         
         # Process document
         processor = DocumentProcessor()
@@ -46,40 +57,46 @@ def process_document_task(self, document_id: str, user_id: int):
             )
             
             # Send success notification
-            async_to_sync(channel_layer.group_send)(
-                f"user_{user_id}",
-                {
-                    "type": "document_processing_update", 
-                    "message": {
-                        "document_id": document_id,
-                        "status": "ready",
-                        "progress": 100,
-                        "message": f"✅ {document.title} is ready for queries!",
-                        "chunk_count": document.chunk_count,
-                        "word_count": document.word_count
+            try:
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{user_id}",
+                    {
+                        "type": "document_processing_update", 
+                        "message": {
+                            "document_id": document_id,
+                            "status": "ready",
+                            "progress": 100,
+                            "message": f"✅ {document.title} is ready for queries!",
+                            "chunk_count": document.chunk_count,
+                            "word_count": document.word_count
+                        }
                     }
-                }
-            )
+                )
+            except Exception as e:
+                logger.warning(f"Could not send success notification: {e}")
             
             logger.info(f"Successfully processed document {document_id}")
             
         else:
             # Send error notification  
-            async_to_sync(channel_layer.group_send)(
-                f"user_{user_id}",
-                {
-                    "type": "document_processing_update",
-                    "message": {
-                        "document_id": document_id,
-                        "status": "error", 
-                        "progress": 0,
-                        "message": f"❌ Error processing {document.title}",
-                        "error": document.error_message
+            try:
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{user_id}",
+                    {
+                        "type": "document_processing_update",
+                        "message": {
+                            "document_id": document_id,
+                            "status": "error", 
+                            "progress": 0,
+                            "message": f"❌ Error processing {document.title}",
+                            "error": document.error_message
+                        }
                     }
-                }
-            )
+                )
+            except Exception as e:
+                logger.warning(f"Could not send error notification: {e}")
             
-            logger.error(f"Failed to process document {document_id}")
+            logger.error(f"Failed to process document {document_id}: {document.error_message}")
     
     except Exception as e:
         logger.error(f"Task error for document {document_id}: {str(e)}")
@@ -90,8 +107,13 @@ def process_document_task(self, document_id: str, user_id: int):
             document.status = 'error'
             document.error_message = str(e)
             document.save()
-        except:
-            pass
+        except Exception as save_error:
+            logger.error(f"Could not save error status: {save_error}")
+        
+        # Retry the task
+        if self.request.retries < self.max_retries:
+            logger.info(f"Retrying document processing for {document_id}, attempt {self.request.retries + 1}")
+            raise self.retry(countdown=60 * (self.request.retries + 1), exc=e)
 
 @shared_task
 def cleanup_failed_uploads():
@@ -107,30 +129,11 @@ def cleanup_failed_uploads():
         uploaded_at__lt=cutoff_time
     )
     
+    count = failed_docs.count()
     for doc in failed_docs:
         logger.info(f"Cleaning up failed document: {doc.id}")
-        doc.delete()
+        doc.status = 'error'
+        doc.error_message = "Processing timed out after 24 hours"
+        doc.save()
     
-    return f"Cleaned up {failed_docs.count()} failed documents"
-
-@shared_task
-def rebuild_faiss_index():
-    """Rebuild FAISS index from scratch (maintenance task)"""
-    
-    try:
-        processor = DocumentProcessor()
-        
-        # Get all ready documents
-        documents = Document.objects.filter(status='ready', is_indexed=True)
-        
-        logger.info(f"Rebuilding FAISS index for {documents.count()} documents")
-        
-        for document in documents:
-            # Reprocess document
-            processor.process_document(document)
-        
-        return f"Successfully rebuilt FAISS index for {documents.count()} documents"
-        
-    except Exception as e:
-        logger.error(f"Error rebuilding FAISS index: {str(e)}")
-        return f"Error: {str(e)}"
+    return f"Cleaned up {count} failed documents"

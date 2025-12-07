@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intellidoc - AI Powered Documentation</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <!-- 🌐 Navbar -->
+    <nav class="fixed w-full bg-gray-900 text-white shadow z-50">
+        <div class="container mx-auto flex justify-between items-center py-4 px-6">
+            <a href="/" class="text-2xl font-bold">⚡ Intellidoc</a>
+            <ul class="hidden md:flex space-x-6">
+                <li><a href="#features" class="hover:text-blue-400">Features</a></li>
+                <li><a href="#demo" class="hover:text-blue-400">Demo</a></li>
+                <li><a href="#pricing" class="hover:text-blue-400">Pricing</a></li>
+                <li><a href="#contact" class="hover:text-blue-400">Contact</a></li>
+                <li><a href="{% url 'documents:list' %}" class="hover:text-blue-400">Documents</a></li>
+                <li><a href="{% url 'chat:list' %}" class="hover:text-blue-400">Chat</a></li>
+                <li><a href="{% url 'accounts:profile' %}" class="hover:text-blue-400">Profile</a></li>
+            </ul>
+            <div class="space-x-3">
+                {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+                        {% csrf_token %}
+                        <button class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg">Logout</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'accounts:login' %}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg">Login</a>
+                    <a href="{% url 'accounts:register' %}" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- 🎯 Hero Section -->
+    <section class="relative bg-gradient-to-r from-blue-600 to-indigo-700 text-white pt-32 pb-20" id="hero">
+        <div class="container mx-auto text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-4">Welcome to Intellidoc</h1>
+            <p class="text-lg md:text-xl mb-6">AI-powered documentation, chat, and collaboration system.</p>
+            <a href="{% url 'accounts:login' %}?next={% url 'documents:list' %}" 
+               class="px-6 py-3 bg-white text-blue-700 font-semibold rounded-lg shadow hover:bg-gray-200 transition">
+               Get Started
+            </a>
+        </div>
+    </section>
+
+    <!-- 🚀 Features Section -->
+    <section id="features" class="py-16">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-12">Features</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="p-6 bg-white rounded-2xl shadow hover:shadow-xl transition">
+                    <h3 class="text-xl font-bold mb-3">📄 Smart Documents</h3>
+                    <p class="text-gray-600">Upload, manage, and process documents with AI-powered summaries and insights.</p>
+                </div>
+                <div class="p-6 bg-white rounded-2xl shadow hover:shadow-xl transition">
+                    <h3 class="text-xl font-bold mb-3">💬 AI Chat</h3>
+                    <p class="text-gray-600">Engage in conversations with assistants trained on your documents.</p>
+                </div>
+                <div class="p-6 bg-white rounded-2xl shadow hover:shadow-xl transition">
+                    <h3 class="text-xl font-bold mb-3">⚡ Real-time Tasks</h3>
+                    <p class="text-gray-600">Background tasks powered by Celery & Redis for scalability.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 🎥 Demo Section -->
+    <section id="demo" class="bg-gray-100 py-16">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-6">Live Demo</h2>
+            <p class="text-gray-600 mb-6">Try interacting with Intellidoc using sample data.</p>
+            <a href="{% url 'chat:list' %}" 
+               class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+               Try the Chat
+            </a>
+        </div>
+    </section>
+
+    <!-- 💰 Pricing Section -->
+    <section id="pricing" class="py-16">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-10">Pricing</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="p-6 bg-white rounded-2xl shadow">
+                    <h3 class="text-xl font-bold mb-2">Free</h3>
+                    <p class="mb-4 text-gray-600">Basic access with limited features.</p>
+                    <a href="{% url 'accounts:register' %}" 
+                       class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Start Free</a>
+                </div>
+                <div class="p-6 bg-white rounded-2xl shadow border-2 border-blue-600">
+                    <h3 class="text-xl font-bold mb-2">Pro</h3>
+                    <p class="mb-4 text-gray-600">Unlock full features for power users.</p>
+                    <a href="{% url 'accounts:register' %}" 
+                       class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Upgrade</a>
+                </div>
+                <div class="p-6 bg-white rounded-2xl shadow">
+                    <h3 class="text-xl font-bold mb-2">Enterprise</h3>
+                    <p class="mb-4 text-gray-600">Custom solutions for your team.</p>
+                    <a href="{% url 'accounts:register' %}" 
+                       class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 📩 Contact Section -->
+    <section id="contact" class="bg-gray-100 py-16">
+        <div class="container mx-auto text-center">
+            <h2 class="text-3xl font-bold mb-6">Contact Us</h2>
+            <p class="text-gray-600 mb-6">Got questions? We’d love to hear from you.</p>
+            <a href="mailto:support@intellidoc.com" 
+               class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+               Email Support
+            </a>
+        </div>
+    </section>
+
+    <!-- ⚡ Call to Action -->
+    <section class="bg-blue-700 text-white py-16 text-center">
+        <h2 class="text-3xl font-bold mb-4">Boost Productivity with Intellidoc</h2>
+        <p class="mb-6">Sign up today and experience seamless AI-powered document management.</p>
+        <a href="{% url 'accounts:register' %}" 
+           class="px-8 py-3 bg-white text-blue-700 font-semibold rounded-lg hover:bg-gray-200 transition">
+           Join Now
+        </a>
+    </section>
+
+    <!-- 🔻 Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-6">
+        <div class="container mx-auto text-center">
+            <p class="mb-2">&copy; 2025 Intellidoc. All rights reserved.</p>
+            <p class="text-sm">Built with Django, Tailwind, Celery, Redis, and AI.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

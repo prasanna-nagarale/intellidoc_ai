@@ -14,7 +14,7 @@
                 Get instant insights, summaries, and answers from your knowledge base.
             </p>
             <div class="flex justify-center space-x-4">
-                <a href="{% url 'core:chat' %}" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                <a href="{% url 'chat:list' %}" class="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
                     Start Chatting
                 </a>
                 <a href="{% url 'core:document_upload' %}" class="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-gray-900 transition-colors">
@@ -75,7 +75,7 @@
                     </p>
                     <div class="flex justify-between items-center">
                         <span class="text-xs text-gray-500">{{ doc.created_at|timesince }} ago</span>
-                        <a href="{% url 'core:chat' %}?document={{ doc.id }}" class="text-blue-400 hover:text-blue-300 text-sm">
+                        <a href="{% url 'chat:list' %}?document={{ doc.id }}" class="text-blue-400 hover:text-blue-300 text-sm">
                             Chat with this doc →
                         </a>
                     </div>

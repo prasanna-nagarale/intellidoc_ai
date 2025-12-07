@@ -1,0 +1,175 @@
+<!-- This template is loaded via HTMX after successful upload -->
+<div class="bg-green-900/20 border border-green-500 rounded-lg p-6 mb-6">
+    <div class="flex items-start">
+        <div class="flex-shrink-0">
+            <i class="fas fa-check-circle text-green-400 text-xl"></i>
+        </div>
+        <div class="ml-3 flex-1">
+            <h3 class="text-lg font-medium text-green-400 mb-2">
+                Upload Successful!
+            </h3>
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700 mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <h4 class="font-semibold">{{ document.title }}</h4>
+                        <p class="text-sm text-gray-400">
+                            {{ document.file_type|upper }} • {{ document.file_size|filesizeformat }}
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-900/50 text-yellow-400">
+                            <i class="fas fa-cog fa-spin mr-1"></i>
+                            Processing
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Processing Status -->
+                <div class="mb-3">
+                    <div class="flex justify-between text-sm mb-1">
+                        <span>Processing Progress</span>
+                        <span id="progress-text">Starting...</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 10%"></div>
+                    </div>
+                </div>
+
+                <!-- Real-time updates will be shown here -->
+                <div id="processing-updates" class="text-sm text-gray-300">
+                    <div class="flex items-center">
+                        <i class="fas fa-circle-notch fa-spin mr-2 text-blue-400"></i>
+                        Your document is being processed in the background...
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="text-center">
+                        <i class="fas fa-clock text-blue-400 text-lg mb-2"></i>
+                        <p class="text-sm text-gray-300">Estimated Time</p>
+                        <p class="text-lg font-semibold">2-5 minutes</p>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-lg p-4">
+                    <div class="text-center">
+                        <i class="fas fa-robot text-green-400 text-lg mb-2"></i>
+                        <p class="text-sm text-gray-300">Status</p>
+                        <p class="text-lg font-semibold" id="status-display">Processing</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a href="{% url 'documents:list' %}" 
+                   class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center transition-colors">
+                    <i class="fas fa-list mr-2"></i>
+                    View All Documents
+                </a>
+                <button 
+                    onclick="uploadAnother()" 
+                    class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-plus mr-2"></i>
+                    Upload Another
+                </button>
+            </div>
+
+            <!-- What's Next Section -->
+            <div class="mt-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <h4 class="font-semibold text-blue-400 mb-2">What's Next?</h4>
+                <ul class="text-sm text-gray-300 space-y-1">
+                    <li>• Your document is being processed and indexed for AI search</li>
+                    <li>• You'll receive a notification when it's ready</li>
+                    <li>• Once processed, you can start chatting with your document</li>
+                    <li>• The document will be searchable across your knowledge base</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set up real-time status polling
+const documentId = '{{ document.id }}';
+let pollingInterval;
+
+function startStatusPolling() {
+    pollingInterval = setInterval(function() {
+        fetch(`{% url 'documents:processing_status' document.id %}`)
+            .then(response => response.json())
+            .then(data => {
+                updateProcessingStatus(data);
+                if (data.status === 'ready' || data.status === 'error') {
+                    clearInterval(pollingInterval);
+                }
+            })
+            .catch(error => {
+                console.error('Error polling status:', error);
+            });
+    }, 3000); // Poll every 3 seconds
+}
+
+function updateProcessingStatus(data) {
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const statusDisplay = document.getElementById('status-display');
+    const updatesDiv = document.getElementById('processing-updates');
+    
+    // Update progress bar
+    if (data.progress) {
+        progressBar.style.width = data.progress + '%';
+        progressText.textContent = data.progress + '%';
+    }
+    
+    // Update status
+    statusDisplay.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+    
+    // Update processing info
+    if (data.status === 'ready') {
+        updatesDiv.innerHTML = `
+            <div class="flex items-center text-green-400">
+                <i class="fas fa-check-circle mr-2"></i>
+                Processing complete! Your document is ready for AI chat.
+            </div>
+            <div class="mt-2">
+                <strong>Chunks:</strong> ${data.chunk_count || 0} • 
+                <strong>Words:</strong> ${data.word_count || 0}
+            </div>
+        `;
+        
+        // Show success actions
+        const actionsDiv = document.querySelector('.flex.flex-col.sm\\:flex-row.gap-3');
+        actionsDiv.innerHTML = `
+            <a href="{% url 'documents:detail' document.id %}" 
+               class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-center transition-colors">
+                <i class="fas fa-eye mr-2"></i>
+                View Document
+            </a>
+            <a href="#" 
+               class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-center transition-colors">
+                <i class="fas fa-comments mr-2"></i>
+                Start Chat
+            </a>
+        `;
+    } else if (data.status === 'error') {
+        updatesDiv.innerHTML = `
+            <div class="flex items-center text-red-400">
+                <i class="fas fa-exclamation-circle mr-2"></i>
+                Processing failed: ${data.error_message || 'Unknown error'}
+            </div>
+        `;
+    }
+}
+
+function uploadAnother() {
+    // Reset the form
+    document.getElementById('document-upload-form').reset();
+    document.getElementById('upload-status').innerHTML = '';
+    document.getElementById('document-file-preview').classList.add('hidden');
+    document.getElementById('upload-submit-btn').disabled = true;
+}
+
+// Start polling when the template loads
+startStatusPolling();
+</script>

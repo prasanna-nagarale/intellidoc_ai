@@ -24,9 +24,21 @@ class DocumentUploadForm(forms.ModelForm):
             })
         }
 
+    # In DocumentUploadForm.__init__:
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Add proper CSS classes
+        self.fields['title'].widget.attrs.update({
+            'class': 'w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'Enter document title'
+        })
+        self.fields['description'].widget.attrs.update({
+            'class': 'w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500',
+            'placeholder': 'Brief description of the document content...',
+            'rows': 3
+        })
 
     def clean_title(self):
         title = self.cleaned_data.get('title')

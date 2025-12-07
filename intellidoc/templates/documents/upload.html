@@ -1,0 +1,305 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Document - RAG AI Assistant{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-900 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold mb-4">Upload Your Documents</h1>
+            <p class="text-gray-400 text-lg">
+                Support for PDF, DOCX, TXT, and more. Your documents will be processed and ready for AI chat in minutes.
+            </p>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="bg-gray-800 rounded-xl border border-gray-700 p-8">
+            <form 
+                id="document-upload-form"
+                hx-post="{% url 'documents:upload' %}"
+                hx-encoding="multipart/form-data"
+                hx-target="#upload-status"
+                hx-swap="outerHTML"
+                hx-indicator="#upload-spinner"
+                enctype="multipart/form-data"
+            >
+                {% csrf_token %}
+                
+                <!-- File Upload Area -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">Choose Files</label>
+                    <div 
+                        class="border-2 border-dashed border-gray-600 rounded-lg p-12 text-center hover:border-blue-500 transition-colors"
+                        id="document-drop-zone"
+                        ondrop="handleDocumentDrop(event)"
+                        ondragover="handleDocumentDragOver(event)"
+                        ondragleave="handleDocumentDragLeave(event)"
+                    >
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-500 mb-4"></i>
+                        <p class="text-gray-400 mb-2">Drag and drop files here, or click to browse</p>
+                        <input 
+                            type="file" 
+                            name="file"
+                            id="document-file-input"
+                            class="hidden"
+                            accept=".pdf,.docx,.doc,.txt,.md"
+                            onchange="handleDocumentFileSelect(event)"
+                        />
+                        <button 
+                            type="button"
+                            onclick="document.getElementById('document-file-input').click()"
+                            class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm"
+                        >
+                            Browse Files
+                        </button>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Supported: PDF, DOCX, TXT, MD (Max 50MB per file)
+                        </p>
+                    </div>
+                    <!-- File validation feedback -->
+                    <div id="file-validation" class="mt-2"></div>
+                </div>
+
+                <!-- File Preview -->
+                <div id="document-file-preview" class="mb-6 hidden">
+                    <label class="block text-sm font-medium mb-2">Selected File</label>
+                    <div id="document-file-info" class="bg-gray-700 rounded-lg p-4">
+                        <!-- File info will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Document Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium mb-2">
+                            Document Title *
+                        </label>
+                        {{ form.title }}
+                        <div id="title-validation" class="mt-1"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Tags (Optional)</label>
+                        <input 
+                            type="text"
+                            name="tags"
+                            id="tags-input"
+                            class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="research, report, manual (comma-separated)"
+                        />
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium mb-2">
+                        Description (Optional)
+                    </label>
+                    {{ form.description }}
+                </div>
+
+                <!-- Submit Button -->
+                <div class="text-center">
+                    <button 
+                        type="submit"
+                        id="upload-submit-btn"
+                        class="bg-blue-600 hover:bg-blue-700 px-8 py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled
+                    >
+                        <i class="fas fa-upload mr-2"></i>
+                        Upload & Process
+                    </button>
+                    <div id="upload-spinner" class="htmx-indicator">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Uploading...
+                    </div>
+                </div>
+            </form>
+
+            <!-- Upload Status -->
+            <div id="upload-status" class="mt-6"></div>
+        </div>
+
+        <!-- Recent Uploads -->
+        {% if recent_uploads %}
+        <div class="mt-12">
+            <h2 class="text-2xl font-bold mb-6">Recent Uploads</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for doc in recent_uploads %}
+                <div class="bg-gray-800 rounded-xl border border-gray-700 p-6">
+                    <div class="flex items-start justify-between mb-4">
+                        <h3 class="font-semibold truncate">{{ doc.title }}</h3>
+                        <div class="flex items-center space-x-2">
+                            {% if doc.status == 'ready' %}
+                                <span class="w-2 h-2 bg-green-400 rounded-full"></span>
+                                <span class="text-xs text-green-400">Ready</span>
+                            {% elif doc.status == 'processing' %}
+                                <span class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                                <span class="text-xs text-yellow-400">Processing</span>
+                            {% elif doc.status == 'error' %}
+                                <span class="w-2 h-2 bg-red-400 rounded-full"></span>
+                                <span class="text-xs text-red-400">Failed</span>
+                            {% else %}
+                                <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                <span class="text-xs text-gray-400">{{ doc.status|title }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-400 mb-2">
+                        {{ doc.file_type|upper }} • {{ doc.file_size|filesizeformat }}
+                    </p>
+                    
+                    {% if doc.description %}
+                    <p class="text-sm text-gray-300 mb-4">{{ doc.description|truncatechars:100 }}</p>
+                    {% endif %}
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-gray-500">{{ doc.uploaded_at|timesince }} ago</span>
+                        {% if doc.status == 'ready' %}
+                        <a href="{% url 'documents:detail' doc.id %}" class="text-blue-400 hover:text-blue-300 text-sm">
+                            View Document →
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Document upload specific JavaScript to avoid conflicts
+    const documentDropZone = document.getElementById('document-drop-zone');
+    const documentFileInput = document.getElementById('document-file-input');
+    const documentFilePreview = document.getElementById('document-file-preview');
+    const documentFileInfo = document.getElementById('document-file-info');
+    const uploadSubmitBtn = document.getElementById('upload-submit-btn');
+    const titleField = document.getElementById('id_title');
+    let selectedFile = null;
+
+    function handleDocumentDragOver(e) {
+        e.preventDefault();
+        documentDropZone.classList.add('border-blue-500', 'bg-gray-700');
+    }
+
+    function handleDocumentDragLeave(e) {
+        e.preventDefault();
+        documentDropZone.classList.remove('border-blue-500', 'bg-gray-700');
+    }
+
+    function handleDocumentDrop(e) {
+        e.preventDefault();
+        documentDropZone.classList.remove('border-blue-500', 'bg-gray-700');
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) {
+            handleDocumentFile(files[0]);
+        }
+    }
+
+    function handleDocumentFileSelect(e) {
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            handleDocumentFile(files[0]);
+        }
+    }
+
+    function handleDocumentFile(file) {
+        selectedFile = file;
+        
+        // Validate file
+        if (!validateFile(file)) {
+            return;
+        }
+        
+        // Show file preview
+        documentFilePreview.classList.remove('hidden');
+        documentFileInfo.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-file-alt text-blue-400 mr-3"></i>
+                    <div>
+                        <div class="font-medium">${file.name}</div>
+                        <div class="text-sm text-gray-400">${(file.size/1024/1024).toFixed(2)} MB</div>
+                    </div>
+                </div>
+                <button type="button" class="text-red-400 hover:text-red-300" onclick="removeDocumentFile()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Auto-fill title if empty
+        if (!titleField.value) {
+            const filename = file.name.split('.').slice(0, -1).join('.');
+            titleField.value = filename;
+        }
+        
+        // Enable submit button
+        uploadSubmitBtn.disabled = false;
+        
+        // Update file input
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        documentFileInput.files = dt.files;
+    }
+
+    function validateFile(file) {
+        const allowedTypes = ['.pdf', '.docx', '.doc', '.txt', '.md'];
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        
+        const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedTypes.includes(fileExt)) {
+            showFileValidation(`File type ${fileExt} is not supported.`, 'error');
+            return false;
+        }
+        
+        if (file.size > maxSize) {
+            showFileValidation(`File is too large. Maximum size is 50MB.`, 'error');
+            return false;
+        }
+        
+        showFileValidation(`File is valid (${(file.size/1024/1024).toFixed(2)} MB)`, 'success');
+        return true;
+    }
+
+    function showFileValidation(message, type) {
+        const validationDiv = document.getElementById('file-validation');
+        validationDiv.innerHTML = `
+            <div class="text-sm ${type === 'error' ? 'text-red-400' : 'text-green-400'}">
+                ${type === 'error' ? '❌' : '✅'} ${message}
+            </div>
+        `;
+    }
+
+    function removeDocumentFile() {
+        selectedFile = null;
+        documentFilePreview.classList.add('hidden');
+        documentFileInput.value = '';
+        uploadSubmitBtn.disabled = true;
+        document.getElementById('file-validation').innerHTML = '';
+    }
+
+    // Real-time title validation
+    titleField.addEventListener('input', function() {
+        const title = this.value.trim();
+        if (title.length > 0) {
+            // You can add HTMX validation here
+            fetch('{% url "documents:validate_title" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                },
+                body: `title=${encodeURIComponent(title)}`
+            }).then(response => response.text())
+              .then(html => {
+                  document.getElementById('title-validation').innerHTML = html;
+              });
+        }
+    });
+</script>
+{% endblock %}

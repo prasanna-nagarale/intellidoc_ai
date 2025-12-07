@@ -1,0 +1,43 @@
+# Core framework
+Django==5.0.1
+djangorestframework==3.16.1
+django-cors-headers==4.7.0
+django-extensions==4.1
+django-ninja==1.4.3
+django-timezone-field==7.1
+sqlparse==0.5.3
+
+# Async & channels (for websockets / realtime)
+channels==4.3.1
+channels-redis==4.3.0
+
+# Celery & scheduling
+celery[redis]==5.5.3
+redis==5.2.1
+django-celery-beat==2.8.1
+
+# Database
+psycopg2-binary==2.9.10
+
+# Utilities
+python-decouple==3.8
+requests==2.32.5
+pillow==11.3.0
+PyYAML==6.0.2
+
+# Document processing
+PyPDF2==3.0.1
+python-docx==1.2.0
+
+# AI / NLP
+openai==1.101.0
+transformers==4.55.4
+sentence-transformers==5.1.0
+scikit-learn==1.7.1
+scipy==1.16.1
+numpy==1.26.4
+
+# FAISS for search
+faiss-cpu==1.12.0
+
+daphne==4.2.0

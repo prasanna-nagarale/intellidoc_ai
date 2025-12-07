@@ -198,3 +198,18 @@ class DocumentAccess(models.Model):
             models.Index(fields=['document', 'timestamp']),
             models.Index(fields=['user', 'timestamp']),
         ]
+
+
+# documents/models.py
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
+@receiver(pre_save, sender=Document)
+def set_file_metadata(sender, instance, **kwargs):
+    if instance.file:
+        # File type from extension
+        _, ext = os.path.splitext(instance.file.name)
+        instance.file_type = ext.lower().replace(".", "")
+
+        # File size (bytes → KB)
+        instance.file_size = instance.file.size // 1024

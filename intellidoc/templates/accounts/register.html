@@ -10,106 +10,68 @@
             <p class="mt-2 text-gray-400">Join thousands using AI for document intelligence</p>
         </div>
         
-        <form 
-            class="mt-8 space-y-6 bg-gray-800 rounded-xl border border-gray-700 p-8"
-            hx-post="{% url 'accounts:register' %}"
-            hx-target="#form-errors"
-            hx-swap="innerHTML"
-        >
+        <form method="post" action="{% url 'accounts:register' %}"
+              class="mt-8 space-y-6 bg-gray-800 rounded-xl border border-gray-700 p-8">
             {% csrf_token %}
             
-            <div id="form-errors">
-                {% if form.errors %}
-                <div class="bg-red-900 border border-red-700 rounded-lg p-4 mb-4">
-                    {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                        <p class="text-red-300 text-sm">{{ error }}</p>
-                        {% endfor %}
+            {% if form.errors %}
+            <div class="bg-red-900 border border-red-700 rounded-lg p-4 mb-4">
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                    <p class="text-red-300 text-sm">{{ error }}</p>
                     {% endfor %}
-                </div>
-                {% endif %}
+                {% endfor %}
             </div>
+            {% endif %}
 
             <div class="space-y-4">
                 <div>
                     <label for="first_name" class="block text-sm font-medium mb-2">First Name</label>
-                    <input 
-                        type="text" 
-                        name="first_name"
-                        id="first_name"
-                        required
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="John"
-                    />
+                    <input type="text" name="first_name" id="first_name" required
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="John" value="{{ form.first_name.value|default:'' }}">
                 </div>
 
                 <div>
                     <label for="last_name" class="block text-sm font-medium mb-2">Last Name</label>
-                    <input 
-                        type="text" 
-                        name="last_name"
-                        id="last_name"
-                        required
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Doe"
-                    />
+                    <input type="text" name="last_name" id="last_name" required
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Doe" value="{{ form.last_name.value|default:'' }}">
                 </div>
 
                 <div>
                     <label for="email" class="block text-sm font-medium mb-2">Email</label>
-                    <input 
-                        type="email" 
-                        name="email"
-                        id="email"
-                        required
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="your@email.com"
-                    />
+                    <input type="email" name="email" id="email" required
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="your@email.com" value="{{ form.email.value|default:'' }}">
                 </div>
 
                 <div>
                     <label for="password1" class="block text-sm font-medium mb-2">Password</label>
-                    <input 
-                        type="password" 
-                        name="password1"
-                        id="password1"
-                        required
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Create a strong password"
-                    />
+                    <input type="password" name="password1" id="password1" required
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Create a strong password">
                 </div>
 
                 <div>
                     <label for="password2" class="block text-sm font-medium mb-2">Confirm Password</label>
-                    <input 
-                        type="password" 
-                        name="password2"
-                        id="password2"
-                        required
-                        class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Confirm your password"
-                    />
+                    <input type="password" name="password2" id="password2" required
+                           class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Confirm your password">
                 </div>
             </div>
 
             <div class="flex items-center">
-                <input 
-                    type="checkbox" 
-                    name="terms"
-                    id="terms"
-                    required
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded"
-                />
+                <input type="checkbox" name="terms" id="terms" required
+                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded">
                 <label for="terms" class="ml-2 text-sm text-gray-300">
                     I agree to the <a href="#" class="text-blue-400 hover:text-blue-300">Terms of Service</a> and 
                     <a href="#" class="text-blue-400 hover:text-blue-300">Privacy Policy</a>
                 </label>
             </div>
 
-            <button 
-                type="submit"
-                class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-medium transition-colors"
-            >
+            <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-medium transition-colors">
                 Create Account
             </button>
 

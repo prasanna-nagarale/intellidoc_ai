@@ -12,7 +12,7 @@
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-lg font-semibold">Chat Sessions</h2>
                 <button 
-                    hx-post="{% url 'core:chat_create' %}"
+                    hx-post="{% url 'chat:create' %}"
                     hx-target="#chat-list"
                     hx-swap="afterbegin"
                     class="bg-blue-600 hover:bg-blue-700 p-2 rounded-lg"
@@ -38,8 +38,11 @@
         <div class="flex-1 overflow-y-auto p-4">
             <div id="chat-list">
                 {% for chat in recent_chats %}
-                <div class="chat-item mb-3 p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer {% if chat.id == current_chat.id %}bg-blue-600{% endif %}"
-                     onclick="loadChat({{ chat.id }})">
+                <div 
+                    class="chat-item mb-3 p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer {% if chat.id == current_chat.id %}bg-blue-600{% endif %}"
+                    data-document-id="{{ chat.document.id|default:'' }}"
+                    onclick="loadChat({{ chat.id }})"
+                >
                     <h3 class="font-medium truncate">{{ chat.title|default:"New Chat" }}</h3>
                     <p class="text-xs text-gray-400 mt-1">{{ chat.updated_at|timesince }} ago</p>
                     {% if chat.document %}
@@ -73,6 +76,7 @@
 
         <!-- Messages Container -->
         <div class="flex-1 overflow-y-auto p-4" id="messages-container">
+            {% if current_chat %}
             <div id="messages" hx-ext="ws" ws-connect="/ws/chat/{{ current_chat.id }}/">
                 {% for message in chat_messages %}
                 <div class="message mb-6 {% if message.role == 'user' %}user-message{% else %}assistant-message{% endif %}">
@@ -117,13 +121,19 @@
                     </div>
                 </div>
             </div>
+            {% else %}
+            <div id="messages" class="p-6 text-center text-gray-400">
+                No conversation yet — start a new chat.
+            </div>
+            {% endif %}
         </div>
 
         <!-- Message Input -->
         <div class="border-t border-gray-700 p-4">
+            {% if current_chat %}
             <form 
                 id="message-form"
-                hx-post="{% url 'core:chat_message' current_chat.id %}"
+                hx-post="{% url 'chat:chat_message' current_chat.id %}"
                 hx-target="#messages"
                 hx-swap="beforeend"
                 hx-on::after-request="clearInput()"
@@ -150,6 +160,13 @@
                     Send
                 </button>
             </form>
+            {% else %}
+            <div class="text-center">
+                <a href="{% url 'chat:create' %}" class="bg-blue-600 px-4 py-2 rounded-lg text-white">
+                    Start a new chat
+                </a>
+            </div>
+            {% endif %}
             
             <!-- Usage Info -->
             <div class="mt-2 text-xs text-gray-500 text-center">
@@ -178,7 +195,6 @@ function scrollToBottom() {
 }
 
 function filterByDocument(documentId) {
-    // Filter chats by document
     const chatItems = document.querySelectorAll('.chat-item');
     chatItems.forEach(item => {
         if (!documentId || item.dataset.documentId === documentId) {
@@ -203,7 +219,6 @@ document.body.addEventListener('htmx:wsAfterMessage', function(e) {
     }
 });
 
-// Auto-scroll on page load
 window.onload = function() {
     scrollToBottom();
 };

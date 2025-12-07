@@ -27,6 +27,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'django_extensions',
     'django_celery_beat',
+    'django_celery_results',
 ]
 
 LOCAL_APPS = [
@@ -90,21 +91,22 @@ REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 
 # Channels
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [REDIS_URL],
-        },
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer" if not DEBUG else "channels.layers.InMemoryChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+        } if not DEBUG else {},
     },
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_ALWAYS_EAGER = False
 
 # Cache
 CACHES = {
@@ -143,6 +145,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -190,3 +193,9 @@ LOGGING = {
         },
     },
 }
+
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "accounts:dashboard"
+LOGOUT_REDIRECT_URL = "/"

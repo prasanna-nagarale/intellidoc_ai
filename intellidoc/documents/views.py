@@ -1,6 +1,8 @@
 import json
 import logging
 from typing import Dict, Any
+from .tasks import process_document_task
+from .services import DocumentProcessor, FAISSSearchService  # Add this line
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -25,7 +27,7 @@ class DocumentListView(LoginRequiredMixin, ListView):
     """Document dashboard with advanced filtering"""
     
     model = Document
-    template_name = 'documents/dashboard.html'
+    template_name = 'documents/list.html'
     context_object_name = 'documents'
     paginate_by = 12
     
@@ -80,6 +82,7 @@ class DocumentListView(LoginRequiredMixin, ListView):
         return context
 
 @login_required
+@require_http_methods(["GET", "POST"])
 def document_upload_view(request):
     """HTMX-powered document upload with real-time feedback"""
     
@@ -87,6 +90,11 @@ def document_upload_view(request):
         form = DocumentUploadForm(request.POST, request.FILES, user=request.user)
         
         if form.is_valid():
+            if not request.user.can_upload_document():
+                return JsonResponse(
+                    {"error": "Upgrade your plan to upload more documents"}, status=403
+                )
+
             document = form.save(commit=False)
             document.owner = request.user
             
@@ -117,24 +125,33 @@ def document_upload_view(request):
             
             # HTMX response
             if request.headers.get('HX-Request'):
-                return render(request, 'documents/partials/upload_success.html', {
-                    'document': document
-                })
-            
-            messages.success(request, f'Document "{document.title}" uploaded successfully!')
-            return redirect('documents:dashboard')
+                return render(request, 'documents/upload_success.html', {
+        'document': document
+    })
+            else:
+                messages.success(request, f'Document "{document.title}" uploaded successfully!')
+                return redirect('documents:list')
         
         else:
             # HTMX error response
             if request.headers.get('HX-Request'):
-                return render(request, 'documents/partials/upload_form.html', {
+                return render(request, 'documents/upload_form.html', {
                     'form': form
                 })
     
     else:
         form = DocumentUploadForm(user=request.user)
     
-    return render(request, 'documents/upload.html', {'form': form})
+    # ✅ Always send recent uploads to the template
+    recent_uploads = Document.objects.filter(owner=request.user)\
+        .exclude(status='deleted')\
+        .order_by('-uploaded_at')[:5]
+
+    return render(request, 'documents/upload.html', {
+        'form': form,
+        'recent_uploads': recent_uploads
+    })
+
 
 @login_required
 @require_http_methods(["GET"])
@@ -149,7 +166,7 @@ def document_search_view(request):
             status='ready'
         ).order_by('-last_accessed')[:6]
         
-        return render(request, 'documents/partials/search_results.html', {
+        return render(request, 'documents/search_results.html', {
             'documents': documents,
             'query': query
         })
@@ -179,7 +196,7 @@ def document_search_view(request):
             }
         documents_dict[doc_id]["chunks"].append(result)
     
-    return render(request, 'documents/partials/search_results.html', {
+    return render(request, 'documents/search_results.html', {
         'search_results': list(documents_dict.values()),
         'query': query,
         'total_results': len(search_results)
@@ -236,7 +253,7 @@ def document_delete_view(request, document_id):
         return HttpResponse('')  # HTMX will remove the element
     
     messages.success(request, f'Document "{document.title}" deleted successfully!')
-    return redirect('documents:dashboard')
+    return redirect('documents:list')
 
 @login_required
 def collection_create_view(request):
@@ -251,12 +268,12 @@ def collection_create_view(request):
             collection.save()
             
             if request.headers.get('HX-Request'):
-                return render(request, 'documents/partials/collection_item.html', {
+                return render(request, 'documents/collection_item.html', {
                     'collection': collection
                 })
             
             messages.success(request, f'Collection "{collection.name}" created!')
-            return redirect('documents:dashboard')
+            return redirect('documents:list')
     
     else:
         form = CollectionForm(user=request.user)

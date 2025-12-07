@@ -12,56 +12,38 @@ from django.http import JsonResponse
 from django.db.models import Count, Sum
 from django.utils import timezone
 from datetime import timedelta
-
 from .models import User
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, UserProfileForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm
 from documents.models import Document, DocumentCollection
+from django.conf import settings
+from django.shortcuts import resolve_url
 
 class RegisterView(CreateView):
-    """User registration with email verification"""
-    
     model = User
     form_class = CustomUserCreationForm
-    template_name = 'accounts/register.html'
-    success_url = reverse_lazy('accounts:login')
-    
+    template_name = "accounts/register.html"
+
     def form_valid(self, form):
-        response = super().form_valid(form)
-        
-        # Auto-login after registration
-        username = form.cleaned_data.get('email')
-        password = form.cleaned_data.get('password1')
-        user = authenticate(username=username, password=password)
-        
+        user = form.save()
+        raw_password = form.cleaned_data.get("password1")
+
+        # authenticate directly with email
+        user = authenticate(self.request, email=user.email, password=raw_password)
         if user:
             login(self.request, user)
-            messages.success(self.request, 'Welcome to IntelliDoc AI! 🎉')
-            return redirect('documents:dashboard')
-        
-        return response
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Create Your Account'
-        return context
+            messages.success(self.request, "Welcome to IntelliDoc AI 🎉")
+            return redirect("accounts:dashboard")
+
+        return super().form_valid(form)
+
 
 class CustomLoginView(LoginView):
-    """Enhanced login view with email support"""
-    
     form_class = CustomAuthenticationForm
-    template_name = 'accounts/login.html'
-    
+    template_name = "accounts/login.html"
+
     def get_success_url(self):
-        return reverse_lazy('documents:dashboard')
-    
-    def form_valid(self, form):
-        messages.success(self.request, f'Welcome back, {form.get_user().first_name}! 👋')
-        return super().form_valid(form)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Sign In'
-        return context
+        return self.get_redirect_url() or resolve_url(settings.LOGIN_REDIRECT_URL)
+
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     """User profile view with stats"""
@@ -92,25 +74,10 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         
         return context
 
-class ProfileEditView(LoginRequiredMixin, UpdateView):
-    """Edit user profile"""
-    
-    model = User
-    form_class = UserProfileForm
-    template_name = 'accounts/profile_edit.html'
-    success_url = reverse_lazy('accounts:profile')
-    
-    def get_object(self):
-        return self.request.user
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Profile updated successfully! ✅')
-        return super().form_valid(form)
-
 class DashboardView(LoginRequiredMixin, TemplateView):
     """Main user dashboard with analytics"""
     
-    template_name = 'accounts/dashboard.html'
+    template_name = 'core/dashboard.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
