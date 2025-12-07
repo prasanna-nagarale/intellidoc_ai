@@ -1,4 +1,4 @@
-📌 IntelliDoc AI
+### 📌 IntelliDoc AI
 
 (⚠️ Project is currently under active development — features, code structure, and documentation are being refined.)
 
